@@ -59,5 +59,10 @@ export class SqsSource implements ISource {
     this.queue.grantConsumeMessages(grantee);
   }
 
+  // You will need to change the ISource interface to exclude this method
+  // I would probably extend ISource and add grantDlqPush there
+  grantDlqPush(_grantee: IRole): void {
+    throw new Error('never');
+  }
 }
 

@@ -5,6 +5,8 @@ export class TestSource implements ISource {
   readonly sourceArn = 'source-arn';
   private sourceParameters = {};
   public grantRead = jest.fn();
+  // FIXME remove as well, see my comment for SqsSource.grantDlqPush
+  public grantDlqPush = jest.fn();
 
   constructor(parameters?: SourceParameters) {
     if (parameters) {
