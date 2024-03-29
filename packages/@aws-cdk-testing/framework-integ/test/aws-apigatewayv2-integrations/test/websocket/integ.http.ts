@@ -1,7 +1,7 @@
 import * as integ from '@aws-cdk/integ-tests-alpha';
 import { App, CfnOutput, Duration, Stack } from 'aws-cdk-lib';
-import { ContentHandling, HttpApi, HttpMethod, WebSocketApi, WebSocketStage } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpLambdaIntegration, WebSocketHttpIntegration, WebSocketHttpProxyIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { HttpApi, WebSocketApi, WebSocketStage } from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration, WebSocketHttpIntegration, WebSocketHttpIntegrationProps, WebSocketHttpProxyIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 // import * as iam from 'aws-cdk-lib/aws-iam';
 // import * as logs from 'aws-cdk-lib/aws-logs';
@@ -22,37 +22,36 @@ const httpHandler = new lambda.Function(stack, 'HttpHandler', {
   runtime: lambda.Runtime.NODEJS_18_X,
   handler: 'index.handler',
   code: new lambda.InlineCode(`
-  exports.handler = function(event) {
+  exports.handler = async (event) => {
     console.log(event);
-    const { requestContext: { http: { method } }, headers, body, isBase64Encoded } = event;
+    const { requestContext: { http: { method } }, headers, body: requestBody } = event;
 
     const integHeaders = Object.fromEntries(
       Object.entries(headers).filter(([key]) => key.startsWith('X-Integ')),
     );
 
-    let parsedBody = body;
-    if (isBase64Encoded) {
-      parsedBody = Buffer.from(body, 'base64').toString('utf-8');
+    const parsedBody = JSON.parse(requestBody ?? 'null');
+    if (parsedBody.myInputError) {
+      return {
+        statusCode: parsedBody.myInputError,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: 'WS triggered error: ' + parsedBody.myInputError }),
+      };
     }
-    parsedBody = JSON.parse(parsedBody ?? 'null');
 
-    let resultBody = JSON.stringify({ 
-      success: true, 
-      requestReceivedByHttpEndpoint: { 
+    const resultBody = JSON.stringify({
+      success: true,
+      requestReceivedByHttpEndpoint: {
         method,
         integHeaders,
-        body: parsedBody,
+        parsedBody,
       }
     });
 
-    if (isBase64Encoded) {
-      resultBody = Buffer.from(resultBody).toString('base64');
-    }
-
-    return { 
+    return {
       statusCode: 200,
+      headers: {'Content-Type': 'application/json'},
       body: resultBody,
-      isBase64Encoded,
     };
   };`),
 });
@@ -62,44 +61,55 @@ const httpApi = new HttpApi(stack, 'HttpApi', {
 });
 assert(httpApi.url, 'HTTP API URL is required');
 
-const websocketHttpIntegration = new WebSocketHttpIntegration('WebsocketHttpIntegration', {
-  integrationMethod: HttpMethod.GET,
+const defaultIntegrationProps = {
   integrationUri: httpApi.url,
-  timeout: Duration.seconds(10),
-  // contentHandling: ContentHandling.CONVERT_TO_TEXT,
-});
-
-const websocketHttpProxyIntegration = new WebSocketHttpProxyIntegration('WebsocketHttpIntegration', {
-  integrationMethod: HttpMethod.POST,
-  integrationUri: httpApi.url,
-  timeout: Duration.seconds(10),
-  contentHandling: ContentHandling.CONVERT_TO_BINARY,
+  timeout: Duration.seconds(5),
   requestParameters: {
-    // 'integration.request.header.Authorization': '$context.authorizer.auth',
-    // 'integration.request.header.X-Integ-Header': 'fixed-header-value',
+    'integration.request.header.Content-Type': '\'application/json\'',
   },
-  /* requestTemplates: {
-    'application/json': JSON.stringify({ data: 'some-data' }),
-  },
-  templateSelectionExpression: '\\$default', */
-});
+} satisfies Partial<WebSocketHttpIntegrationProps>;
 
-const webSocketApi = new WebSocketApi(stack, 'WebSocketApi', {
-  defaultRouteOptions: {
-    integration: websocketHttpProxyIntegration,
-    returnResponse: true,
-  },
-});
+const webSocketApi = new WebSocketApi(stack, 'WebSocketApi');
 
 webSocketApi.addRoute('http', {
-  integration: websocketHttpIntegration,
+  integration: new WebSocketHttpIntegration('WebsocketHttpIntegration', {
+    ...defaultIntegrationProps,
+    templateSelectionExpression: '\\$default',
+    requestTemplates: {
+      $default: JSON.stringify({
+        myInputError: "$input.path('$.triggerError')",
+        myInputData: "$input.path('$.data')",
+        stage: '$context.stage',
+      }),
+    },
+    // TODO document ordering, last one wins
+    integrationResponses: [
+      { key: '/2\\d{2}/' },
+      {
+        key: '/4\\d{2}/',
+        responseTemplates: {
+          'application/json': JSON.stringify({ error: 'Bad Request', message: 'integration.response.body.message' }),
+        },
+      },
+      {
+        key: '/499/',
+        responseTemplates: {
+          'application/json': JSON.stringify({ message: '4 9 9' }),
+        },
+      },
+    ],
+  }),
+  // TODO auto add integrationResponse for { key: '/2\\d{2}/' } if true and not provided?
+  // Or just throw and tell the user to add it?
   returnResponse: true,
 });
 
-/* webSocketApi.addRoute('http-proxy', {
-  integration: websocketHttpProxyIntegration,
+webSocketApi.addRoute('http-proxy', {
+  integration: new WebSocketHttpProxyIntegration('WebsocketHttpIntegration', {
+    ...defaultIntegrationProps,
+  }),
   returnResponse: true,
-});  */
+});
 
 const stage = new WebSocketStage(stack, 'mystage', {
   webSocketApi,

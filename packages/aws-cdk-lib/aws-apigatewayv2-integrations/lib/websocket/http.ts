@@ -5,6 +5,7 @@ import {
   WebSocketRouteIntegrationConfig,
   ContentHandling,
   HttpMethod,
+  WebSocketIntegrationResponseProps,
 } from '../../../aws-apigatewayv2';
 import { Duration } from '../../../core';
 
@@ -66,6 +67,14 @@ export interface WebSocketHttpIntegrationProps {
    * @default Duration.seconds(29)
    */
   readonly timeout?: Duration;
+
+  /**
+   * TODO
+   *
+   * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-integration-responses.html#apigateway-websocket-api-integration-response-overview
+   * @default - No integration response.
+   */
+  readonly integrationResponses?: WebSocketIntegrationResponseProps[];
 }
 
 type WebSocketIntegrationHttpType = WebSocketIntegrationType.HTTP | WebSocketIntegrationType.HTTP_PROXY;
@@ -92,6 +101,7 @@ class BaseWebSocketHttpIntegration extends WebSocketRouteIntegration {
       requestTemplates: this.props.requestTemplates,
       templateSelectionExpression: this.props.templateSelectionExpression,
       timeout: this.props.timeout,
+      integrationResponses: this.props.integrationResponses,
     };
   }
 }

@@ -1,7 +1,7 @@
 import { Construct } from 'constructs';
 import { IWebSocketApi } from './api';
 import { IWebSocketRoute } from './route';
-import { CfnIntegration } from '.././index';
+import { CfnIntegration, CfnIntegrationResponse } from '.././index';
 import { IRole } from '../../../aws-iam';
 import { Duration, Resource } from '../../../core';
 import { IIntegration } from '../common';
@@ -98,6 +98,23 @@ export enum PassthroughBehavior {
 }
 
 /**
+ * TODO
+ *
+ * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-integration-responses.html#apigateway-websocket-api-integration-response-overview
+ */
+export interface WebSocketIntegrationResponseProps {
+  /**
+   * TODO
+   */
+  readonly key: string;
+  /**
+   * TODO
+   * @default - No response templates
+   */
+  readonly responseTemplates?: Record<string, string>;
+}
+
+/**
  * The integration properties
  */
 export interface WebSocketIntegrationProps {
@@ -184,6 +201,14 @@ export interface WebSocketIntegrationProps {
    * @default - No passthrough behavior required.
    */
   readonly passthroughBehavior?: PassthroughBehavior;
+
+  /**
+   * TODO
+   *
+   * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-integration-responses.html#apigateway-websocket-api-integration-response-overview
+   * @default - No integration response.
+   */
+  readonly integrationResponses?: WebSocketIntegrationResponseProps[];
 }
 
 /**
@@ -211,6 +236,21 @@ export class WebSocketIntegration extends Resource implements IWebSocketIntegrat
     });
     this.integrationId = integ.ref;
     this.webSocketApi = props.webSocketApi;
+
+    for (const integrationResponse of props.integrationResponses ?? []) {
+      // FIXME better than index
+      // TODO verify unique key
+      new CfnIntegrationResponse(this, 'IntegrationResponse' + props.integrationResponses?.indexOf(integrationResponse), {
+        apiId: this.webSocketApi.apiId,
+        integrationId: this.integrationId,
+        integrationResponseKey: integrationResponse.key,
+        responseTemplates: integrationResponse.responseTemplates,
+
+        /* templateSelectionExpression: integrationResponse.key,
+        contentHandlingStrategy: props.contentHandling,
+        responseParameters: {} */
+      });
+    }
   }
 }
 
@@ -267,6 +307,7 @@ export abstract class WebSocketRouteIntegration {
         timeout: config.timeout,
         passthroughBehavior: config.passthroughBehavior,
         templateSelectionExpression: config.templateSelectionExpression,
+        integrationResponses: config.integrationResponses,
       });
     }
 
@@ -347,7 +388,15 @@ export interface WebSocketRouteIntegrationConfig {
   /**
    * Integration passthrough behaviors.
    *
-   * @default - No pass through bahavior.
+   * @default - No pass through behavior.
    */
   readonly passthroughBehavior?: PassthroughBehavior;
+
+  /**
+   * TODO
+   *
+   * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-websocket-api-integration-responses.html#apigateway-websocket-api-integration-response-overview
+   * @default - No integration response.
+   */
+  readonly integrationResponses?: WebSocketIntegrationResponseProps[];
 }
