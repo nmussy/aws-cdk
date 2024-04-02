@@ -3,6 +3,7 @@ import { AssertionHandler } from './assertion';
 import { HttpHandler } from './http';
 import { AwsApiCallHandler } from './sdk';
 import * as types from './types';
+import { WebSocketHandler } from './websocket';
 
 export async function handler(event: AWSLambda.CloudFormationCustomResourceEvent, context: AWSLambda.Context) {
   console.log(`Event: ${JSON.stringify({ ...event, ResponseURL: '...' })}`);
@@ -150,6 +151,8 @@ function createResourceHandler(event: AWSLambda.CloudFormationCustomResourceEven
     return new AssertionHandler(event, context);
   } else if (event.ResourceType.startsWith(types.HTTP_RESOURCE_TYPE)) {
     return new HttpHandler(event, context);
+  } else if (event.ResourceType.startsWith(types.WEBSOCKET_RESOURCE_TYPE)) {
+    return new WebSocketHandler(event, context);
   } else {
     throw new Error(`Unsupported resource type "${event.ResourceType}`);
   }

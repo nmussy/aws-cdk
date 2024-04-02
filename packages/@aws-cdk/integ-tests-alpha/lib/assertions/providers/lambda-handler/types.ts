@@ -4,6 +4,7 @@
 export const ASSERT_RESOURCE_TYPE = 'Custom::DeployAssert@AssertEquals';
 export const SDK_RESOURCE_TYPE_PREFIX = 'Custom::DeployAssert@SdkCall';
 export const HTTP_RESOURCE_TYPE = 'Custom::DeployAssert@HttpCall';
+export const WEBSOCKET_RESOURCE_TYPE = 'Custom::DeployAssert@WebSocketCall';
 
 export interface HttpRequestParameters {
   /**
@@ -160,6 +161,69 @@ export interface AwsApiCallResult {
    * The full api response
    */
   readonly apiCallResponse: any;
+}
+
+/**
+ * Options for a WebSocket request parameter set
+ */
+export interface WebSocketRequestParametersOptions {
+  /**
+   * The message to send the WebSocket after connection
+   */
+  readonly message: string;
+
+  /**
+   * Array of sub-protocols to be sent to the server on connection
+   *
+   * @default - No sub protocols will be sent to the servers
+   * @see https://docs.aws.amazon.com/apigateway/latest/developerguide/websocket-connect-route-subprotocol.html
+   */
+  readonly subProtocols?: string[];
+}
+
+/**
+ * Parameters for a WebSocket request
+ */
+export interface WebSocketRequestParameters {
+  /**
+   * The WebSocket url to connect. Must start with `wss://`
+   */
+  readonly url: string;
+
+  /**
+   * Options for WebSocket request
+   */
+  readonly options: WebSocketRequestParametersOptions;
+}
+
+/**
+ * Request to the WebSocketCall resource
+ */
+export interface WebSocketRequest {
+  /**
+   * Parameters from the custom resource
+   */
+  readonly parameters: WebSocketRequestParameters;
+}
+
+/**
+ * Response from the WebSocketCall resource
+ */
+export interface WebSocketResponseWrapper {
+  /**
+   * The Response from the fetch request
+   */
+  readonly apiCallResponse: WebSocketResponse;
+}
+
+/**
+ * Response message following the sent WebSocket message
+ */
+export interface WebSocketResponse {
+  /**
+   * The response, either as parsed JSON or a string literal.
+   */
+  readonly body?: any;
 }
 
 /**

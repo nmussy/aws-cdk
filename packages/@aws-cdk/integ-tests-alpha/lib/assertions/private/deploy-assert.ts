@@ -5,9 +5,10 @@ import { EqualsAssertion } from '../assertions';
 import { ActualResult, ExpectedResult } from '../common';
 import { HttpApiCall as HttpApiCall } from '../http-call';
 import { md5hash } from '../private/hash';
-import { FetchOptions } from '../providers';
+import { FetchOptions, WebSocketRequestParametersOptions } from '../providers';
 import { AwsApiCall, LambdaInvokeFunction, LambdaInvokeFunctionProps } from '../sdk';
 import { IDeployAssert } from '../types';
+import { WebSocketApiCall } from '../websocket-call';
 
 const DEPLOY_ASSERT_SYMBOL = Symbol.for('@aws-cdk/integ-tests.DeployAssert');
 
@@ -91,6 +92,26 @@ export class DeployAssert extends Construct implements IDeployAssert {
     return new HttpApiCall(this.scope, this.uniqueAssertionId(`HttpApiCall${append}${hash}`), {
       url,
       fetchOptions: options,
+    });
+  }
+
+  public webSocketApiCall(url: string, options: WebSocketRequestParametersOptions): IApiCall {
+    let hash = '';
+    try {
+      hash = md5hash(this.scope.resolve({
+        url,
+        options,
+      }));
+    } catch {}
+
+    let append = '';
+    if (!Token.isUnresolved(url)) {
+      const parsedUrl = new URL(url);
+      append = `${parsedUrl.hostname}${parsedUrl.pathname}`;
+    }
+    return new WebSocketApiCall(this.scope, this.uniqueAssertionId(`WebSocketApiCall${append}${hash}`), {
+      url,
+      options,
     });
   }
 

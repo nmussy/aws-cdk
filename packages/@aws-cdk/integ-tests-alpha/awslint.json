@@ -8,6 +8,10 @@
     "props-default-doc:@aws-cdk/integ-tests-alpha.HttpResponse.headers",
     "props-default-doc:@aws-cdk/integ-tests-alpha.HttpResponse.ok",
     "props-default-doc:@aws-cdk/integ-tests-alpha.HttpResponse.status",
-    "props-default-doc:@aws-cdk/integ-tests-alpha.HttpResponse.statusText"
+    "props-default-doc:@aws-cdk/integ-tests-alpha.HttpResponse.statusText",
+    "props-struct-name:@aws-cdk/integ-tests-alpha.IWebSocketApiCall",
+    "construct-ctor-props-type:@aws-cdk/integ-tests-alpha.WebSocketApiCall",
+    "props-default-doc:@aws-cdk/integ-tests-alpha.WebSocketRequestParameters.options",
+    "props-default-doc:@aws-cdk/integ-tests-alpha.WebSocketResponse.body"
   ]
 }
